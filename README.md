@@ -1,4 +1,4 @@
-# Adaptive Hypergraph Transformer for Action Quality Assessment
+# Adaptive Hypergraph Transformer Network for Action Quality Assessment
 
 
 ## Environment
