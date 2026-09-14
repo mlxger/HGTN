@@ -8,7 +8,7 @@
   pip install -r requirment.txt
 ```
 
-# Datasets
+## Datasets
 
 The extracted VST features and label files of the Rhythmic Gymnastics and Fis-V datasets can be downloaded from the [GDLT](https://github.com/xuangch/CVPR22_GDLT) repository.
 
@@ -18,12 +18,12 @@ The original videos of the Rhythmic Gymnastics dataset can be downloaded from th
 
 The original videos of the Fis-V dataset can be downloaded from the [MS_LSTM](https://github.com/chmxu/MS_LSTM) repository.
 
-# Running
+## Running
 ```bash
   python main.py 
 ```
 
-# Testing
+## Testing
 ```bash
   python main.py --ckpt {pkl file here} --test
 ```
