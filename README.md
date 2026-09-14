@@ -1,2 +1,2 @@
-# HGTN
-Adaptive Hypergraph Transformer for Action Quality Assessment
+# Adaptive Hypergraph Transformer for Action Quality Assessment
+
