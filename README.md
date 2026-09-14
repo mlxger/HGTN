@@ -1,7 +1,7 @@
 # Adaptive Hypergraph Transformer for Action Quality Assessment
 
 
-# Environment
+## Environment
 ```bash
   conda create --name hgtn python==3.10
   conda activate hgtn
