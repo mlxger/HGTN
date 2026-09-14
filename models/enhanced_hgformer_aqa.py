@@ -14,7 +14,7 @@ from models.hgformer_aqa import (
 
 
 class AttentionGuidedPrototypeAlignment(nn.Module):
-    """注意力引导的原型对齐模块"""
+    
     
     def __init__(self, hidden_dim: int, n_query: int, n_head: int = 4):
         super().__init__()
@@ -22,7 +22,7 @@ class AttentionGuidedPrototypeAlignment(nn.Module):
         self.n_query = n_query
         self.n_head = n_head
         
-        # 多头注意力机制
+        
         self.multihead_attn = nn.MultiheadAttention(
             embed_dim=hidden_dim,
             num_heads=n_head,
@@ -30,7 +30,7 @@ class AttentionGuidedPrototypeAlignment(nn.Module):
             batch_first=True
         )
         
-        # 原型特征增强
+        
         self.prototype_enhancer = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim * 2),
             nn.ReLU(),
@@ -38,13 +38,13 @@ class AttentionGuidedPrototypeAlignment(nn.Module):
             nn.Linear(hidden_dim * 2, hidden_dim)
         )
         
-        # 质量感知门控
+       
         self.quality_gate = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.Sigmoid()
         )
         
-        # 时序重要性权重
+        
         self.temporal_importance = nn.Sequential(
             nn.Linear(hidden_dim, 1),
             nn.Softmax(dim=1)
@@ -53,41 +53,40 @@ class AttentionGuidedPrototypeAlignment(nn.Module):
     def forward(self, prototype_queries: torch.Tensor, encoded_features: torch.Tensor):
         """
         Args:
-            prototype_queries: (B, n_query, hidden_dim) 原型查询
-            encoded_features: (B, T, hidden_dim) 编码特征
+            prototype_queries: (B, n_query, hidden_dim) 
+            encoded_features: (B, T, hidden_dim) 
         Returns:
-            enhanced_prototypes: (B, n_query, hidden_dim) 增强原型
-            attention_weights: (B, n_query, T) 注意力权重
+            enhanced_prototypes: (B, n_query, hidden_dim) 
+            attention_weights: (B, n_query, T) 
         """
         B, n_query, hidden_dim = prototype_queries.shape
         B, T, _ = encoded_features.shape
         
-        # 1. 多头注意力对齐
+        #
         enhanced_prototypes, attention_weights = self.multihead_attn(
             query=prototype_queries,  # (B, n_query, hidden_dim)
             key=encoded_features,     # (B, T, hidden_dim)  
             value=encoded_features    # (B, T, hidden_dim)
         )
         
-        # 2. 原型特征增强
+        
         enhanced_prototypes = self.prototype_enhancer(enhanced_prototypes)
         
-        # 3. 质量感知门控
+        
         quality_gates = self.quality_gate(enhanced_prototypes)
         enhanced_prototypes = enhanced_prototypes * quality_gates
         
-        # 4. 残差连接
+        
         enhanced_prototypes = enhanced_prototypes + prototype_queries
         
-        # 5. 计算时序重要性
+        
         temporal_importance = self.temporal_importance(encoded_features)  # (B, T, 1)
         
         return enhanced_prototypes, attention_weights, temporal_importance
 
 
 class EnhancedHyperAQAFormer(nn.Module):
-    """增强版超图AQA模型 - 注意力引导原型对齐"""
-
+    
     def __init__(
         self,
         in_dim: int = 1024,
@@ -145,10 +144,10 @@ class EnhancedHyperAQAFormer(nn.Module):
             dropout=dropout,
         )
 
-        # 原型相关组件
+        #
         self.prototype = nn.Embedding(n_query, hidden_dim)
         
-        # 注意力引导的原型对齐
+        
         if self.use_prototype_alignment:
             self.prototype_alignment = AttentionGuidedPrototypeAlignment(
                 hidden_dim=hidden_dim,
@@ -156,7 +155,7 @@ class EnhancedHyperAQAFormer(nn.Module):
                 n_head=alignment_heads
             )
         
-        # 自适应权重生成器
+        
         if self.use_adaptive_weighting:
             self.adaptive_weighter = nn.Sequential(
                 nn.Linear(hidden_dim, hidden_dim // 2),
@@ -165,7 +164,7 @@ class EnhancedHyperAQAFormer(nn.Module):
                 nn.Softmax(dim=-1)
             )
         
-        # 评分头
+        
         self.regressor = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
@@ -173,7 +172,7 @@ class EnhancedHyperAQAFormer(nn.Module):
             nn.Linear(hidden_dim // 2, 1)
         )
         
-        # 固定权重作为备选
+        
         self.register_buffer("fixed_weight", torch.linspace(0, 1, n_query, requires_grad=False))
 
     @staticmethod
@@ -224,31 +223,31 @@ class EnhancedHyperAQAFormer(nn.Module):
         # transformer encoder with additive bias
         encode_x = self.transformer.encoder(x_proj, mask=attn_bias)
 
-        # 原型查询
+        
         prototype_queries = self.prototype.weight.unsqueeze(0).repeat(b, 1, 1)  # (B, n_query, hidden)
         
-        # 注意力引导的原型对齐
+        
         if self.use_prototype_alignment:
             enhanced_prototypes, attn_weights, temporal_importance = self.prototype_alignment(
                 prototype_queries, encode_x
             )
         else:
-            # 传统解码器
+           
             enhanced_prototypes, attn_weights = self.transformer.decoder(prototype_queries, encode_x)
             temporal_importance = None
         
-        # 每个原型独立评分
+        
         prototype_scores = self.regressor(enhanced_prototypes).squeeze(-1)  # (B, n_query)
         
-        # 自适应权重或固定权重
+        
         if self.use_adaptive_weighting:
-            # 基于全局特征生成自适应权重
+            
             global_feature = encode_x.mean(dim=1)  # (B, hidden)
             adaptive_weights = self.adaptive_weighter(global_feature)  # (B, n_query)
         else:
             adaptive_weights = self.fixed_weight.unsqueeze(0).repeat(b, 1)
         
-        # 加权求和得到最终评分
+        
         final_scores = torch.sum(adaptive_weights * F.softmax(prototype_scores, dim=-1), dim=1)
         
         return {
