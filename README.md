@@ -18,6 +18,8 @@ The original videos of the Rhythmic Gymnastics dataset can be downloaded from th
 
 The original videos of the Fis-V dataset can be downloaded from the [MS_LSTM](https://github.com/chmxu/MS_LSTM) repository.
 
+All our training and test sets follow the same format as those in the aforementioned repository.
+
 ## Running
 ```bash
   python main.py 
